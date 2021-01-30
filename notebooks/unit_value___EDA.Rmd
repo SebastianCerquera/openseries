@@ -1,0 +1,185 @@
+---
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.5.0
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+notebook_fiducia = "FONDO DE INVERSION COLECTIVA ABIERTO RENTA ALTA CONVICCION"
+notebook_filename = "valores-bancolombia-fic_2020-11-29.csv"
+notebook_serie_name = "Núm. Invers."
+```
+
+```{python}
+notebook_execution_date = "2020-11-29"
+notebook_output_suffix = "unit_value__"
+```
+
+```{python}
+
+```
+
+```{python}
+import numpy as np
+import pandas as pd
+```
+
+```{python}
+from financial_ml.core import *
+from features.buy_daily_during_bullish import *
+```
+
+```{python}
+
+```
+
+```{python}
+import os
+import dotenv
+dotenv.load_dotenv()
+repo = os.environ.get('REPO')
+```
+
+```{python}
+date_suffix = notebook_execution_date
+
+notebook_filename = repo + "/data/" + notebook_filename
+print(notebook_filename)
+```
+
+```{python}
+
+```
+
+# EDA ANALISIS
+
+```{python}
+investors_builder = CSV2TimeSerie(notebook_filename, notebook_serie_name)
+```
+
+```{python}
+timeserie = investors_builder.build(notebook_fiducia)
+timeserie.to_df().head()
+```
+
+## Timeserie exploration
+
+The input CSV file has 3 relevan columns, this notebook explores the statistical properties of one of the columns
+
+```{python}
+MSG = """
+The timeserie for {name} has {size} point with a this 1d period.
+"""
+
+print(MSG.format(
+    name=notebook_serie_name,
+    size=timeserie.to_df().shape[0]
+))
+```
+
+### This is a report of the timeserie
+
+it starts by plotting the serie as a function of time, then it proceds to use boxplots to visualize the statistical properties by unit of time.
+
+Finally it models the points in the serie as independet samples and checks the statistical properties, it differentiates the serie to check if there is an improvement.
+
+```{python}
+PyplotTimeSerie().plot(timeserie)
+```
+
+```{python}
+
+```
+
+## Features exploration:
+
+I need to build the features for the estimator using the timeserie as input.
+
+```{python}
+extractors = [
+    WeeklyExtractor('last_week_sum', sum),
+    WeeklyExtractor('last_week_mean', np.mean),
+    WeeklyExtractor('last_week_std', np.std),
+    MonthlyExtractor('last_month_sum', sum),
+    MonthlyExtractor('last_month_mean', np.mean),
+    MonthlyExtractor('last_month_std', np.std),
+    YearlyExtractor('last_year_sum', sum),
+    YearlyExtractor('last_year_mean', np.mean),
+    YearlyExtractor('last_year_std', np.std)   
+]
+
+features = EDAFeaturesImpl(
+    extractors,
+    notebook_fiducia,
+    notebook_serie_name,
+    date_suffix,
+    notebook_output_suffix
+)
+```
+
+```{python}
+features_builder = FeaturesBuilder(features)
+features_builder.extract(timeserie)
+```
+
+The sum and mean aggregations produce similar histograms, it seems to me tha they convey similar information
+
+```{python}
+PyplotFeatures().plot(features)
+```
+
+```{python}
+features.write(drop=['last_week_mean'])
+```
+
+```{python}
+
+```
+
+## Label exploration:
+
+I need to do this exercise twice, i need a label for the regressor and other for the classifier.
+
+### Regressor
+
+I am intereseted in predicting the unit value but it could also be useful to predict the variations. I could also try using the serie after second differentiation, in this case i think that i could use it as the slope of the last observed variation.
+
+### Classifier
+
+Right now i am only interested in telling if the market is bullish.
+
+```{python}
+acceleration_builder = TimeSerie2Variable(continuous=True)
+acceleration = acceleration_builder.build(timeserie)
+```
+
+```{python}
+PyplotContinuous('accelaration').plot(acceleration)
+```
+
+```{python}
+label = LabelImp(
+    acceleration,
+    notebook_fiducia,
+    notebook_serie_name,
+    date_suffix,
+    notebook_output_suffix
+)
+```
+
+```{python}
+label.write(drop=[])
+```
+
+```{python}
+
+```

@@ -1,0 +1,4 @@
+.ipynb_checkpoints*
+notebooks/generated/
+data/*
+__pycache__*

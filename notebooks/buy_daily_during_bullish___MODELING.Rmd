@@ -1,0 +1,431 @@
+---
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.5.0
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+notebook_fiducia = "FONDO_DE_INVERSION_COLECTIVA_ABIERTO_RENTA_ALTA_CONVICCION"
+notebook_execution_date = "2020-11-29"
+```
+
+```{python}
+import os
+import dotenv
+dotenv.load_dotenv()
+repo = os.environ.get('REPO')
+```
+
+```{python}
+notebook_features_template = f"{repo}/data/{notebook_execution_date}/{notebook_fiducia}/features"
+notebook_labels_template = f"{repo}/data/{notebook_execution_date}/{notebook_fiducia}/labels"
+```
+
+```{python}
+
+```
+
+```{python}
+NOTEBOOK_FEATURES = [
+    "unit_value____",
+    "1st_variation____",
+    "2nd_variation____"
+]
+```
+
+```{python}
+SERIES_NAMES = [
+    "Num_Invers",
+    "Valor_fondo_al_cierre_del_dia_t",
+    "Num_unidades",
+    "Valor_unidad_para_las_operaciones_del_dia_t"
+]
+```
+
+```{python}
+
+```
+
+```{python}
+import numpy as np
+import pandas as pd
+```
+
+```{python}
+
+```
+
+```{python}
+from financial_ml.core import *
+from features.buy_daily_during_bullish import *
+```
+
+```{python}
+
+```
+
+```{python}
+class Parquet2Features(DF2Features):
+    
+    def build(self, filename):
+        df = pd.read_parquet(filename)
+        return super().build(df)
+    
+from abc import ABC, abstractmethod
+
+class Label(ABC):
+    
+    def __init__(self, filename):
+        self.df = pd.read_parquet(filename)
+    
+    def to_df(self):
+        return self.df.copy()
+```
+
+```{python}
+
+```
+
+```{python}
+def build_features(serie_name, diff_level):
+    builder = Parquet2Features()
+    features = builder.build(f"{notebook_features_template}/{diff_level}{serie_name}.parquet")
+    return features.to_df()
+
+def build_labels(serie_name, diff_level):
+    label = Label(f"{notebook_labels_template}/{diff_level}{serie_name}.parquet")
+    return label.to_df()
+```
+
+```{python}
+features = []
+for serie_name in SERIES_NAMES:
+    for diff_level in NOTEBOOK_FEATURES:
+        df = build_features(serie_name, diff_level)
+        df.loc[:, "serie"] = serie_name
+        df.loc[:, "diff_level"] = diff_level
+        features.append(df)
+        
+features = pd.concat(features).reset_index(drop=True)
+features.head()
+```
+
+```{python}
+features_stats = features["diff_level"] + features["serie"]
+assert features_stats.value_counts().shape[0] == 12
+features_stats.value_counts()
+```
+
+```{python}
+
+```
+
+```{python}
+labels = []
+for serie_name in SERIES_NAMES:
+    for diff_level in NOTEBOOK_FEATURES:
+        df = build_labels(serie_name, diff_level)
+        df.loc[:, "serie"] = serie_name
+        df.loc[:, "diff_level"] = diff_level
+        labels.append(df)
+        
+labels = pd.concat(labels).reset_index(drop=True)
+labels.head()
+```
+
+```{python}
+labels_stats = labels["diff_level"] + labels["serie"]
+assert labels_stats.value_counts().shape[0] == 12
+labels_stats.value_counts()
+```
+
+```{python}
+
+```
+
+```{python}
+features_df = pd.DataFrame({'index': list(range(1259))})
+for key, serie_features in features.groupby(['serie', 'diff_level']):
+    df = serie_features.copy()
+    df = df.drop(['serie', 'diff_level'], axis=1)
+    df = df[-1259:].reset_index(drop=True)
+    suffix = key[1] + key[0] + "____"
+    df.columns = suffix + df.columns
+    df.loc[:, 'index'] = df.index
+    features_df = features_df.merge(df, on='index')
+
+features_df = features_df.drop(['index'], axis=1)
+features_df.head()
+```
+
+```{python}
+labels_df = pd.DataFrame({'index': list(range(1259))})
+for key, serie_features in labels.groupby(['serie', 'diff_level']):
+    df = serie_features.copy()
+    df = df.drop(['serie', 'diff_level'], axis=1)
+    df = df[-1259:].reset_index(drop=True)
+    suffix = key[1] + key[0] + "____"
+    df.columns = suffix + df.columns
+    df.loc[:, 'index'] = df.index
+    labels_df = labels_df.merge(df, on='index')
+
+labels_df = labels_df.drop(['index'], axis=1)
+labels_df.head()
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+## Some utitlities to do some brute force regression
+```
+
+```{python}
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import datasets, ensemble
+```
+
+```{python}
+from sklearn.metrics import make_scorer
+from sklearn.metrics import mean_squared_error, mean_absolute_error, explained_variance_score, \
+                r2_score, max_error, median_absolute_error
+
+def mean_absolute_percentage_error(y, yhat):
+    return np.mean(np.abs((y - yhat)/y))
+
+def median_absolute_percentage_error(y, yhat):
+    return np.median(np.abs((y - yhat)/y))
+
+def compute_prediction_metrics(y_test, y_pred):
+    return {
+        'mse': mean_squared_error(y_test, y_pred),
+        'mae': mean_absolute_error(y_test, y_pred),
+        'evs': explained_variance_score(y_test, y_pred),
+        'r2': r2_score(y_test, y_pred),
+        'mdae': median_absolute_error(y_test, y_pred),
+        'mape': mean_absolute_percentage_error(y_test, y_pred),
+        'mdape': median_absolute_percentage_error(y_test, y_pred)
+    }
+
+
+from sklearn.model_selection import GridSearchCV
+
+def run_grid_search(model, X, y, params):
+    search = GridSearchCV(
+        model, params, 
+        scoring=make_scorer(mean_absolute_percentage_error),
+        cv=5, n_jobs=-1)
+    search.fit(X, y)
+    
+    # search.best_score_
+    
+    ## Tambien puedo retornar el modelo configurado: search.best_estimator_
+    return pd.DataFrame(search.cv_results_), search.best_params_
+
+MODELS = {
+    "linear_simple": LinearRegression,
+    "linear_ridged": Ridge,
+    "gradient_boosting": ensemble.GradientBoostingRegressor,
+    "random_forest": ensemble.RandomForestRegressor
+}
+
+def get_features_importance_for_model(model):
+    if isinstance(model, LinearRegression):
+        return model.coef_
+    if isinstance(model, Ridge):
+        return model.coef_
+    if isinstance(model, ensemble.RandomForestRegressor):
+        return model.feature_importances_
+    if isinstance(model, ensemble.GradientBoostingRegressor):
+        return model.feature_importances_    
+    raise Error('Modelo no soportado')
+
+def build_model(name, params=None):
+    assert name in MODELS
+    builder = MODELS[name]
+    model = builder()
+    
+    if params is not None:
+        myparams = params.copy()
+        model.set_params(**myparams)
+    return model
+```
+
+```{python}
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+def plot_statistic(y):
+    MSG = "El estadistico tienen una media {mean} con desviación estandar: {std}"
+
+    fig = plt.figure(figsize=(14, 10))
+    
+    ax = fig.add_subplot(3, 1, 1)
+    sns.boxplot(y, ax=ax)
+    
+    ax = fig.add_subplot(3, 1, 2)
+    sns.boxplot(y, ax=ax, showfliers=False)
+
+    ax = fig.add_subplot(3, 1, 3)
+    sns.distplot(y, ax=ax)
+
+    print(MSG.format(
+        mean=np.mean(y),
+        std=np.std(y),
+    ))
+```
+
+```{python}
+
+```
+
+```{python}
+X = features_df.values
+y = labels_df['1st_variation____Valor_unidad_para_las_operaciones_del_dia_t____value'].values
+y = labels_df['unit_value____Valor_unidad_para_las_operaciones_del_dia_t____value'].values
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+bins = np.linspace(0, max(y), 2)
+y_binned = np.digitize(y, bins)
+```
+
+```{python}
+np.bincount(y_binned)
+```
+
+```{python}
+
+```
+
+```{python}
+from sklearn.preprocessing import StandardScaler
+
+from sklearn.model_selection import train_test_split
+```
+
+```{python}
+X = StandardScaler().fit_transform(X)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.3, random_state=0) #, stratify=y_binned)
+```
+
+```{python}
+
+```
+
+```{python}
+params = {
+    'fit_intercept': [True, False],
+    'normalize': [True, False]
+}
+
+reg = build_model("linear_simple")
+linear_results, linear_best_param = run_grid_search(reg, X_train, y_train, params)
+linear_results.loc[:, "model"] = "linear_simple"
+linear_results.head()
+```
+
+```{python}
+models_metrics = pd.concat([
+    linear_results
+])
+
+models_metrics = models_metrics.reset_index(drop=True)
+models_metrics.head()
+```
+
+```{python}
+best_model_with_params = models_metrics.loc[
+    models_metrics['mean_test_score'] == models_metrics['mean_test_score'].min()]
+
+best_model_with_params = best_model_with_params.iloc[0]
+```
+
+```{python}
+
+MSG = """
+El modelo con los mejores resultados fue: {model}, los mejores parametros fueron: {params}
+"""
+
+print(MSG.format(
+    model=best_model_with_params["model"],
+    params=best_model_with_params["params"]
+))
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+## Estimador con las mejores features
+
+reg = build_model(best_model_with_params["model"], params=best_model_with_params["params"])
+reg.fit(X, y)
+yhat = reg.predict(X)
+```
+
+```{python}
+plot_statistic(yhat)
+```
+
+```{python}
+plot_statistic(y)
+```
+
+```{python}
+
+```
+
+```{python}
+reg = build_model(best_model_with_params["model"], params=best_model_with_params["params"])
+reg.fit(X_train, y_train)
+yhat = reg.predict(X_test)
+```
+
+```{python}
+compute_prediction_metrics(y_test, yhat)
+```
+
+```{python}
+plot_statistic(y_test)
+```
+
+```{python}
+plot_statistic(yhat)
+```
+
+```{python}
+
+```
