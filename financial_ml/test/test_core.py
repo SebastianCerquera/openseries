@@ -4,6 +4,13 @@ import pandas as pd
 
 from financial_ml.core import TimeSerie, DF2TimeSerie, Differentitator
 
+# +
+import os
+import dotenv
+
+dotenv.load_dotenv()
+repo = os.environ.get('REPO')
+
 
 # -
 
@@ -11,7 +18,7 @@ class TimeSerieTest(unittest.TestCase):
     
     @staticmethod
     def read_dummy_df():
-        return pd.read_parquet('/home/runner/notebooks/fiducias/data/dummy.parquet')
+        return pd.read_parquet(repo + '/data/dummy.parquet')
 
     def test_builder_df2timeseries(self):
         dummy_df = self.read_dummy_df()
@@ -30,3 +37,5 @@ class TimeSerieTest(unittest.TestCase):
         timeserie_diff = differentiator.transform(timeserie)
         
         self.assertTrue(isinstance(timeserie_diff, TimeSerie))
+
+
