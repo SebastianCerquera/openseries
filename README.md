@@ -1,28 +1,10 @@
-# Repository setup
-
-El codigo usa ell archivo de propiedades para poder determinar las rutas de todos los componentes.
-
-<!-- #region -->
-```bash
-git clone https://github.com/SebastianCerquera/fiducias.git
-
-cat > .env <<EOF
-REPO=$(pwd)
-EOF
-```
-<!-- #endregion -->
-
-```python
-
-```
-
 # Environment setup
 
 ## Start jupyter
 
 <!-- #region -->
 ```bash
-VERSION=2.0.4
+VERSION=2.0.5
 JUPYTER_SOURCES=$HOME/sources/
  
 sudo docker run --net host \
@@ -34,6 +16,28 @@ sudo docker run --net host \
     -t thepandorasys/jupyter-tools:$VERSION
 ```
 <!-- #endregion -->
+
+```python
+
+```
+
+# Repository setup
+
+El codigo usa ell archivo de propiedades para poder determinar las rutas de todos los componentes.
+
+<!-- #region -->
+```bash
+git clone https://github.com/SebastianCerquera/openseries.git
+
+cat > .env <<EOF
+REPO=$(pwd)
+EOF
+```
+<!-- #endregion -->
+
+```python
+
+```
 
 ## Run financial ml unit tests
 
