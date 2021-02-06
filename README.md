@@ -12,7 +12,7 @@ sudo docker run --net host \
     -v $GOOGLE_APPLICATION_CREDENTIALS:/tmp/credentials/$GOOGLE_APPLICATION_SERVICEFILE \
     -e GIT_EMAIL="$GIT_EMAIL" -e GIT_USERNAME="$GIT_USERNAME" \
     -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/credentials/$GOOGLE_APPLICATION_SERVICEFILE \
-    -e PYTHONPATH="/home/runner/notebooks/fiducias/src/:/home/runner/notebooks/fiducias/financial_ml/" \
+    -e PYTHONPATH="/home/runner/notebooks/openseries/src/:/home/runner/notebooks/openseries/financial_ml/" \
     -t thepandorasys/jupyter-tools:$VERSION
 ```
 <!-- #endregion -->
