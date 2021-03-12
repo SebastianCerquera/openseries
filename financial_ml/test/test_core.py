@@ -48,6 +48,7 @@ class TimeSerieTest(unittest.TestCase):
         
         #then
         self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertEqual(dummy_df.shape[0],df.shape[0])
         
     
 # -
