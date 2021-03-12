@@ -12,7 +12,8 @@ dotenv.load_dotenv()
 repo = os.environ.get('REPO')
 
 
-# +
+# -
+
 class TimeSerieTest(unittest.TestCase):
     
     @staticmethod
@@ -50,8 +51,21 @@ class TimeSerieTest(unittest.TestCase):
         self.assertTrue(isinstance(df, pd.DataFrame))
         self.assertEqual(dummy_df.shape[0],df.shape[0])
         
-    
-# -
+    def test_apply(self):
+        #given
+        dummy_df = self.read_dummy_df()
+        builder = DF2TimeSerie(pd.Timedelta('1d'))
+        timeserie = builder.build(dummy_df)
+        callback = lambda df:df
+        
+        #when
+        timeSerie_traforme = timeserie.apply(callback)
+        df = timeSerie_traforme.to_df()
+        
+        #then
+        self.assertTrue(isinstance(timeSerie_traforme,TimeSerie))
+        self.assertEqual(dummy_df.shape[0],df.shape[0])
+
 
 unittest.main(argv=[''], verbosity=2, exit=False)
 
