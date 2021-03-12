@@ -12,8 +12,7 @@ dotenv.load_dotenv()
 repo = os.environ.get('REPO')
 
 
-# -
-
+# +
 class TimeSerieTest(unittest.TestCase):
     
     @staticmethod
@@ -37,5 +36,22 @@ class TimeSerieTest(unittest.TestCase):
         timeserie_diff = differentiator.transform(timeserie)
         
         self.assertTrue(isinstance(timeserie_diff, TimeSerie))
+        
+    def test_to_df(self):
+        #given
+        dummy_df = self.read_dummy_df()
+        builder = DF2TimeSerie(pd.Timedelta('1d'))
+        
+        #when
+        timeserie = builder.build(dummy_df)
+        df = timeserie.to_df()
+        
+        #then
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        
+    
+# -
+
+unittest.main(argv=[''], verbosity=2, exit=False)
 
 
