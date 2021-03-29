@@ -476,9 +476,13 @@ class CumulativeStatistics(Transformation):
         self.name = name
     
     def transform(self, data):
-        assert isinstance(data, TimeSerie), "The differentiator only works over time series"    
-        df = data.to_df()
+        assert isinstance(data, TimeSerie), "The differentiator only works over time series"
         
+        df = data.to_df()
+        if df.shape[0] < self.periods:
+            #raise AssertionError("There are not enough points to aggregated by this period: {}".format(self.periods))
+            raise Exception()
+
         df.loc[:, 'start_date'] = df['ds']
         
         exploded = []

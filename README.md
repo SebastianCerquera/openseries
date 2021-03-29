@@ -56,7 +56,7 @@ python -m unittest test.test_core
 # Usage
 
 <!-- #region -->
-### EDA
+### EDA Exploratory Data Analisys -- Feature extraction
 
 ```bash
 extract_features(){
