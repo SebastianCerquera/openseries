@@ -45,7 +45,7 @@ EOF
 <!-- #region -->
 ```bash
 cd financial_ml
-python -m unittest test.test_core
+python -m unittest discover test
 ```
 <!-- #endregion -->
 
