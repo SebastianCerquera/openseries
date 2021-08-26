@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # +
 import unittest
 import pandas as pd
@@ -14,13 +15,13 @@ repo = os.environ.get('REPO')
 
 # -
 
-class TimeSerieTest(unittest.TestCase):
+class DF2TimeSerieTest(unittest.TestCase):
     
     @staticmethod
     def read_dummy_df():
         return pd.read_parquet(repo + '/data/dummy.parquet')
-
-    def test_builder_df2timeseries(self):
+    
+    def test_default_columns(self):
         #give
         dummy_df = self.read_dummy_df()
         builder = DF2TimeSerie(pd.Timedelta('1d'))
@@ -29,13 +30,25 @@ class TimeSerieTest(unittest.TestCase):
         timeserie = builder.build(dummy_df)
 
         #then
-        self.assertTrue(isinstance(timeserie, TimeSerie))
+        self.assertTrue(isinstance(timeserie, TimeSerie))  
+
+
+class TimeSerieTest(unittest.TestCase):
+    
+    @staticmethod
+    def read_dummy_df():
+        return pd.read_parquet(repo + '/data/dummy.parquet')
+    
+    @classmethod
+    def setup(clazz):
+        df = clazz.read_dummy_df()
+        dummy_df = clazz.read_dummy_df()
+        
+        return dummy_df, DF2TimeSerie(pd.Timedelta('1d')).build(dummy_df)
         
     def test_transformation_differentiator(self):
         #given
-        dummy_df = self.read_dummy_df()
-        builder = DF2TimeSerie(pd.Timedelta('1d'))
-        timeserie = builder.build(dummy_df)
+        dummy_df, timeserie = self.setup()
         
         #when: Diferenciar un objeto de tipo Timeserie, produce un objeto timeserie
         differentiator = Differentitator()
@@ -46,11 +59,9 @@ class TimeSerieTest(unittest.TestCase):
         
     def test_to_df(self):
         #given
-        dummy_df = self.read_dummy_df()
-        builder = DF2TimeSerie(pd.Timedelta('1d'))
+        dummy_df, timeserie = self.setup()
         
         #when: Verifica que el objeto TImeserie esta soportado sobre un dataframe de pandas
-        timeserie = builder.build(dummy_df)
         df = timeserie.to_df()
         
         #then
@@ -59,9 +70,7 @@ class TimeSerieTest(unittest.TestCase):
         
     def test_apply(self):
         #given
-        dummy_df = self.read_dummy_df()
-        builder = DF2TimeSerie(pd.Timedelta('1d'))
-        timeserie = builder.build(dummy_df)
+        dummy_df, timeserie = self.setup()
         callback = lambda df:df
         
         #when: Tranforma la función, asignandole otra función
@@ -74,9 +83,7 @@ class TimeSerieTest(unittest.TestCase):
 
     def test_clone(self):
         #given
-        dummy_df = self.read_dummy_df()
-        builder = DF2TimeSerie(pd.Timedelta('1d'))
-        timeserie = builder.build(dummy_df)
+        dummy_df, timeserie = self.setup()
 
         #when: Crea otra copia de la data en memoria
         timeserie_clone = timeserie.clone()
