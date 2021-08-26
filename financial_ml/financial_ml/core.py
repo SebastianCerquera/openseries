@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 # -
 
-from abc import ABC, abstractmethod
 
+
+from abc import ABC, abstractmethod
 
 
 # +
@@ -225,14 +226,18 @@ class DF2TimeSerie(TimeSerieBuilder):
         self.value_column = value_column
         
     def safe_series(self, df):
-        df = df.copy().sort_values(by='ds')
+        df = df.copy().sort_values(by=self.date_column)
         
         intervals = df.iloc[1:].reset_index(drop=True) - \
                 df.iloc[:-1].reset_index(drop=True)
-        intervals = intervals['ds'].value_counts()
+        intervals = intervals[self.date_column].value_counts()
         
         assert intervals.shape[0] == 1, "there are missing points"
         assert intervals.index[0] == self.freq, "the interval must match the frequency"
+        
+        df = df.copy()
+        df.loc[:, "ds"] = df[self.date_column]
+        df.loc[:, "y"] = df[self.value_column]
         
         return df
         
@@ -243,7 +248,7 @@ class DF2TimeSerie(TimeSerieBuilder):
         
         df = self.safe_series(data)
         
-        return TimeSerie(data, self.freq)
+        return TimeSerie(df[["ds", "y"]], self.freq)
 
 
 class Array2TimeSerie(DF2TimeSerie):

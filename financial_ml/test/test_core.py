@@ -16,21 +16,28 @@ repo = os.environ.get('REPO')
 # -
 
 class DF2TimeSerieTest(unittest.TestCase):
-    
-    @staticmethod
-    def read_dummy_df():
-        return pd.read_parquet(repo + '/data/dummy.parquet')
-    
+   
     def test_default_columns(self):
         #give
-        dummy_df = self.read_dummy_df()
+        dummy_df = pd.read_parquet(repo + '/data/dummy.parquet')
         builder = DF2TimeSerie(pd.Timedelta('1d'))
 
         #when: Se construlle objeto Timeseria partiendo de un DataFrame
         timeserie = builder.build(dummy_df)
 
         #then
-        self.assertTrue(isinstance(timeserie, TimeSerie))  
+        self.assertTrue(isinstance(timeserie, TimeSerie))
+    
+    def test_default_custom_columsn(self):
+        #give
+        dummy_df = pd.read_parquet(repo + '/data/dummy_custom.parquet')
+        builder = DF2TimeSerie(pd.Timedelta('1d'), date_column='Fecha', value_column='Valor Unidad')
+
+        #when: Se construlle objeto Timeseria partiendo de un DataFrame
+        timeserie = builder.build(dummy_df)
+
+        #then
+        self.assertTrue(isinstance(timeserie, TimeSerie)) 
 
 
 class TimeSerieTest(unittest.TestCase):
