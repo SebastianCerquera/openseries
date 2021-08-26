@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+# +
+import os
+import csv
+import codecs
+
+from datetime import datetime
+# -
+
 import numpy as np
 import pandas as pd
 
@@ -280,7 +288,61 @@ class Array2TimeSerie(DF2TimeSerie):
         return super().build(df)
 
 
-__TIMESERIES_BUILDERS__ = ['TimeSerieBuilder', 'DF2TimeSerie', 'Array2TimeSerie' ]
+class CSV2TimeSerie(TimeSerieBuilder):    
+
+    @staticmethod
+    def read_csv_with_encoding(filename, delimiter="|", encoding="utf-8"):
+        with codecs.open(filename, encoding=encoding) as fp:
+            reader = csv.reader(fp, delimiter=delimiter)
+            csvFile = list(reader)
+            return pd.DataFrame(csvFile[1:], columns=csvFile[0])
+        
+    def prepare_dataframe(self, df):
+        df = df.copy()
+        df.loc[:, self.date_column] = df[self.date_column].apply(lambda e: datetime.strptime(e, self.date_pattern))
+        df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace('$', ''))
+        df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace(',', ''))
+        df.loc[:, self.value_column] = df[self.value_column].apply(float)
+        return df
+        
+    def investors_df(self, df):
+        if self.fund_name is not None and self.fund_column in df.columns:
+            df = df.loc[df[self.fund_column] == self.fund_name]
+            
+        if self.serie_column in df.columns:
+            df = df.loc[df[self.serie_column] == self.serie_name]
+
+        df = df.loc[:, [self.date_column, self.value_column]]
+        return self.prepare_dataframe(df)
+    
+    def __init__(self, filename, serie_name, fund_name=None,
+                 serie_column="Nombre_Fondo", fund_column="Nombre_Entidad",
+                 date_column="Fecha corte", date_pattern="%d/%m/%Y",
+                 period="1d", value_column="Valor Unidad"):
+        self.filename = filename
+        self.serie_name = serie_name
+        self.fund_name = fund_name
+
+        self.serie_column = serie_column
+        self.fund_column = fund_column
+        self.date_column = date_column
+        self.date_pattern = date_pattern
+        self.period = period
+        self.value_column = value_column 
+
+    def build(self, data):
+        df = self.read_csv_with_encoding(self.filename)
+        df = self.investors_df(df)
+             
+        return DF2TimeSerie(
+            pd.Timedelta(self.period),
+            date_column = self.date_column,
+            value_column = self.value_column
+        ).build(df)
+
+
+__TIMESERIES_BUILDERS__ = ['TimeSerieBuilder', 'DF2TimeSerie', 'Array2TimeSerie', 'CSV2TimeSerie']
+
 
 
 class TimeSerie2Variable(BaseBuilder):

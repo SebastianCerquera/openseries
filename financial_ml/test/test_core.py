@@ -3,7 +3,7 @@
 import unittest
 import pandas as pd
 
-from financial_ml.core import TimeSerie, DF2TimeSerie, Differentitator
+from financial_ml.core import TimeSerie, DF2TimeSerie, Differentitator, CSV2TimeSerie
 
 # +
 import os
@@ -35,6 +35,19 @@ class DF2TimeSerieTest(unittest.TestCase):
 
         #when: Se construlle objeto Timeseria partiendo de un DataFrame
         timeserie = builder.build(dummy_df)
+
+        #then
+        self.assertTrue(isinstance(timeserie, TimeSerie)) 
+
+
+class CSV2TimeSerieTest(unittest.TestCase):
+    
+    def test_read_series_defaults(self):
+        #give
+        builder = CSV2TimeSerie(repo + '/data/raw.csv', "test serie")
+
+        #when: Se construlle objeto Timeseria partiendo de un DataFrame
+        timeserie = builder.build(None)
 
         #then
         self.assertTrue(isinstance(timeserie, TimeSerie)) 
