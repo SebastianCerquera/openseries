@@ -318,7 +318,7 @@ class CSV2TimeSerie(TimeSerieBuilder):
     def __init__(self, filename, serie_name, fund_name=None,
                  serie_column="Nombre_Fondo", fund_column="Nombre_Entidad",
                  date_column="Fecha corte", date_pattern="%d/%m/%Y",
-                 period="1d", value_column="Valor Unidad"):
+                 period="1d", value_column="Valor Unidad", delimiter="|"):
         self.filename = filename
         self.serie_name = serie_name
         self.fund_name = fund_name
@@ -328,10 +328,11 @@ class CSV2TimeSerie(TimeSerieBuilder):
         self.date_column = date_column
         self.date_pattern = date_pattern
         self.period = period
-        self.value_column = value_column 
+        self.value_column = value_column
+        self.delimiter = delimiter
 
     def build(self, data):
-        df = self.read_csv_with_encoding(self.filename)
+        df = self.read_csv_with_encoding(self.filename, delimiter=self.delimiter)
         df = self.investors_df(df)
              
         return DF2TimeSerie(
