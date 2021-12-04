@@ -19,11 +19,12 @@ from abc import ABC, abstractmethod
 
 class TimeSerie(ABC):
     
-    def __init__(self, history, freq):
+    def __init__(self, history, freq,date_column='ds', value_column='y'):
         assert isinstance(freq, pd.Timedelta), "The frequency should be a pandas Timedelta"
         assert isinstance(history, pd.DataFrame), "The frequency should be a pandas Timedelta"
-
-        self.history = history.sort_values(by='ds').reset_index(drop=True)
+        self.date_column = date_column
+        self.value_column = value_column
+        self.history = history.sort_values(by=self.date_column).reset_index(drop=True)
         self.freq = freq
         
     def clone(self, history=None):
@@ -36,10 +37,10 @@ class TimeSerie(ABC):
         return self.clone(history=df)
     
     def subset(self, prediction_dates):
-        prediction_min = prediction_dates['ds'].min()
-        prediction_max = prediction_dates['ds'].max()
+        prediction_min = prediction_dates[self.date_column].min()
+        prediction_max = prediction_dates[self.date_column].max()
         history = self.history.loc[
-            (self.history['ds'] >= prediction_min) & (self.history['ds'] <= prediction_max)
+            (self.history[self.date_column] >= prediction_min) & (self.history[self.date_column] <= prediction_max)
         ]
         return self.clone(history=history)
     
@@ -225,11 +226,11 @@ class DF2TimeSerie(TimeSerieBuilder):
         self.value_column = value_column
         
     def safe_series(self, df):
-        df = df.copy().sort_values(by='ds')
+        df = df.copy().sort_values(by=self.date_column)
         
         intervals = df.iloc[1:].reset_index(drop=True) - \
                 df.iloc[:-1].reset_index(drop=True)
-        intervals = intervals['ds'].value_counts()
+        intervals = intervals[self.date_column].value_counts()
         
         assert intervals.shape[0] == 1, "there are missing points"
         assert intervals.index[0] == self.freq, "the interval must match the frequency"
@@ -243,7 +244,7 @@ class DF2TimeSerie(TimeSerieBuilder):
         
         df = self.safe_series(data)
         
-        return TimeSerie(data, self.freq)
+        return TimeSerie(data, self.freq,date_column=self.date_column,value_column=self.value_column)
 
 
 class Array2TimeSerie(DF2TimeSerie):

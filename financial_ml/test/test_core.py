@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # +
 import unittest
 import pandas as pd
@@ -30,7 +31,21 @@ class TimeSerieTest(unittest.TestCase):
 
         #then
         self.assertTrue(isinstance(timeserie, TimeSerie))
-        
+    
+    def test_df2timeseries_non_standard_column_names(self):
+        #give
+        dummy_df = self.read_dummy_df()
+        dummy_df.loc[:,"t"] = dummy_df["ds"]
+        dummy_df = dummy_df.drop(["ds"],axis=1)
+                
+        builder = DF2TimeSerie(pd.Timedelta('1d'),date_column="t")
+
+        #when: Se construlle objeto Timeseria partiendo de un DataFrame
+        timeserie = builder.build(dummy_df)
+
+        #then
+        self.assertTrue(isinstance(timeserie, TimeSerie))
+    
     def test_transformation_differentiator(self):
         #given
         dummy_df = self.read_dummy_df()
