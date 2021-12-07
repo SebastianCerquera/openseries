@@ -20,9 +20,17 @@ class CSV2TimeSerie(TimeSerieBuilder):
             csvFile = list(reader)
             return pd.DataFrame(csvFile[1:], columns=csvFile[0])
         
+    def format_date_column(self, series, pattern):
+        if type(pattern) == str:
+            return series.apply(lambda e: datetime.strptime(e, pattern))
+        elif type(pattern) == type(lambda e:e):
+            series.apply(lambda e: pattern(e))
+        else:
+            raise Exception()
+        
     def prepare_dataframe(self, df):
         df = df.copy()
-        df.loc[:, self.date_column] = df[self.date_column].apply(lambda e: datetime.strptime(e, self.date_pattern))
+        df.loc[:, self.date_column] = self.format_date_column(df[self.date_column], self.date_pattern)
         df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace('$', ''))
         df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace(',', ''))
         df.loc[:, self.value_column] = df[self.value_column].apply(float)
@@ -32,7 +40,7 @@ class CSV2TimeSerie(TimeSerieBuilder):
         if self.fund_name is not None and self.fund_column in df.columns:
             df = df.loc[df[self.fund_column] == self.fund_name]
             
-        if self.serie_column in df.columns:
+        if self.serie_column is not None and self.serie_column in df.columns:
             df = df.loc[df[self.serie_column] == self.serie_name]
 
         df = df.loc[:, [self.date_column, self.value_column]]
