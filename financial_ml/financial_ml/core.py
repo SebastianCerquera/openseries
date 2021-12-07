@@ -28,11 +28,12 @@ from abc import ABC, abstractmethod
 
 class TimeSerie(ABC):
     
-    def __init__(self, history, freq):
+    def __init__(self, history, freq,date_column='ds', value_column='y'):
         assert isinstance(freq, pd.Timedelta), "The frequency should be a pandas Timedelta"
         assert isinstance(history, pd.DataFrame), "The frequency should be a pandas Timedelta"
-
-        self.history = history.sort_values(by='ds').reset_index(drop=True)
+        self.date_column = date_column
+        self.value_column = value_column
+        self.history = history.sort_values(by=self.date_column).reset_index(drop=True)
         self.freq = freq
         
     def clone(self, history=None):
@@ -45,10 +46,10 @@ class TimeSerie(ABC):
         return self.clone(history=df)
     
     def subset(self, prediction_dates):
-        prediction_min = prediction_dates['ds'].min()
-        prediction_max = prediction_dates['ds'].max()
+        prediction_min = prediction_dates[self.date_column].min()
+        prediction_max = prediction_dates[self.date_column].max()
         history = self.history.loc[
-            (self.history['ds'] >= prediction_min) & (self.history['ds'] <= prediction_max)
+            (self.history[self.date_column] >= prediction_min) & (self.history[self.date_column] <= prediction_max)
         ]
         return self.clone(history=history)
     
@@ -256,7 +257,7 @@ class DF2TimeSerie(TimeSerieBuilder):
         
         df = self.safe_series(data)
         
-        return TimeSerie(df[["ds", "y"]], self.freq)
+        return TimeSerie(data, self.freq,date_column=self.date_column,value_column=self.value_column)
 
 
 class Array2TimeSerie(DF2TimeSerie):
@@ -288,61 +289,7 @@ class Array2TimeSerie(DF2TimeSerie):
         return super().build(df)
 
 
-class CSV2TimeSerie(TimeSerieBuilder):    
-
-    @staticmethod
-    def read_csv_with_encoding(filename, delimiter="|", encoding="utf-8"):
-        with codecs.open(filename, encoding=encoding) as fp:
-            reader = csv.reader(fp, delimiter=delimiter)
-            csvFile = list(reader)
-            return pd.DataFrame(csvFile[1:], columns=csvFile[0])
-        
-    def prepare_dataframe(self, df):
-        df = df.copy()
-        df.loc[:, self.date_column] = df[self.date_column].apply(lambda e: datetime.strptime(e, self.date_pattern))
-        df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace('$', ''))
-        df.loc[:, self.value_column] = df[self.value_column].apply(lambda e: e.replace(',', ''))
-        df.loc[:, self.value_column] = df[self.value_column].apply(float)
-        return df
-        
-    def investors_df(self, df):
-        if self.fund_name is not None and self.fund_column in df.columns:
-            df = df.loc[df[self.fund_column] == self.fund_name]
-            
-        if self.serie_column in df.columns:
-            df = df.loc[df[self.serie_column] == self.serie_name]
-
-        df = df.loc[:, [self.date_column, self.value_column]]
-        return self.prepare_dataframe(df)
-    
-    def __init__(self, filename, serie_name, fund_name=None,
-                 serie_column="Nombre_Fondo", fund_column="Nombre_Entidad",
-                 date_column="Fecha corte", date_pattern="%d/%m/%Y",
-                 period="1d", value_column="Valor Unidad", delimiter="|"):
-        self.filename = filename
-        self.serie_name = serie_name
-        self.fund_name = fund_name
-
-        self.serie_column = serie_column
-        self.fund_column = fund_column
-        self.date_column = date_column
-        self.date_pattern = date_pattern
-        self.period = period
-        self.value_column = value_column
-        self.delimiter = delimiter
-
-    def build(self, data):
-        df = self.read_csv_with_encoding(self.filename, delimiter=self.delimiter)
-        df = self.investors_df(df)
-             
-        return DF2TimeSerie(
-            pd.Timedelta(self.period),
-            date_column = self.date_column,
-            value_column = self.value_column
-        ).build(df)
-
-
-__TIMESERIES_BUILDERS__ = ['TimeSerieBuilder', 'DF2TimeSerie', 'Array2TimeSerie', 'CSV2TimeSerie']
+__TIMESERIES_BUILDERS__ = ['TimeSerieBuilder', 'DF2TimeSerie', 'Array2TimeSerie']
 
 
 

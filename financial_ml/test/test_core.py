@@ -3,7 +3,7 @@
 import unittest
 import pandas as pd
 
-from financial_ml.core import TimeSerie, DF2TimeSerie, Differentitator, CSV2TimeSerie
+from financial_ml.core import TimeSerie, DF2TimeSerie, Differentitator
 
 # +
 import os
@@ -15,7 +15,10 @@ repo = os.environ.get('REPO')
 
 # -
 
-class DF2TimeSerieTest(unittest.TestCase):
+class DF2TimeSerieTest(unittest.TestCase):    
+    @staticmethod
+    def read_dummy_df():
+        return pd.read_parquet(repo + '/data/dummy.parquet')
    
     def test_default_columns(self):
         #give
@@ -27,27 +30,17 @@ class DF2TimeSerieTest(unittest.TestCase):
 
         #then
         self.assertTrue(isinstance(timeserie, TimeSerie))
-    
-    def test_default_custom_columsn(self):
+        
+    def test_df2timeseries_non_standard_column_names(self):
         #give
-        dummy_df = pd.read_parquet(repo + '/data/dummy_custom.parquet')
-        builder = DF2TimeSerie(pd.Timedelta('1d'), date_column='Fecha', value_column='Valor Unidad')
+        dummy_df = self.read_dummy_df()
+        dummy_df.loc[:,"t"] = dummy_df["ds"]
+        dummy_df = dummy_df.drop(["ds"],axis=1)
+                
+        builder = DF2TimeSerie(pd.Timedelta('1d'),date_column="t")
 
         #when: Se construlle objeto Timeseria partiendo de un DataFrame
         timeserie = builder.build(dummy_df)
-
-        #then
-        self.assertTrue(isinstance(timeserie, TimeSerie)) 
-
-
-class CSV2TimeSerieTest(unittest.TestCase):
-    
-    def test_read_series_defaults(self):
-        #give
-        builder = CSV2TimeSerie(repo + '/data/raw.csv', "test serie")
-
-        #when: Se construlle objeto Timeseria partiendo de un DataFrame
-        timeserie = builder.build(None)
 
         #then
         self.assertTrue(isinstance(timeserie, TimeSerie)) 
@@ -65,7 +58,7 @@ class TimeSerieTest(unittest.TestCase):
         dummy_df = clazz.read_dummy_df()
         
         return dummy_df, DF2TimeSerie(pd.Timedelta('1d')).build(dummy_df)
-        
+    
     def test_transformation_differentiator(self):
         #given
         dummy_df, timeserie = self.setup()
