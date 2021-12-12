@@ -30,7 +30,7 @@ class ValoresBancolombiaCSV(CSV2TimeSerie):
             print(date)
             raise Exception()
         return datetime.strptime(
-            parts[0] + "/" + cls.months_map[parts[1]] + "/" + parts[2], "%Y/%m/%d")
+            parts[0] + "/" + cls.months_map[parts[1]] + "/" + parts[2], "%d/%m/%Y")
     
     def __init__(self, filename, serie_name):
         super().__init__(

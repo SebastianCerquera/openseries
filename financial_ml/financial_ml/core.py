@@ -35,7 +35,22 @@ class TimeSerie(ABC):
         self.value_column = value_column
         self.history = history.sort_values(by=self.date_column).reset_index(drop=True)
         self.freq = freq
+    
+    def canonical_form(self):
+        df_copy = self.history.copy()
+        df_copy.loc[:, "ds"] = df_copy[self.date_column]
+        df_copy.loc[:, "y"] = df_copy[self.value_column]
         
+        if self.date_column in self.history.columns:
+            if self.date_column != 'ds':
+                df_copy = df_copy.drop([self.date_column], axis=1)
+                
+        if self.value_column in self.history.columns:
+            if self.value_column != 'y':
+                df_copy = df_copy.drop([self.value_column], axis=1)
+        
+        return df_copy
+    
     def clone(self, history=None):
         if history is None:
             history = self.history
@@ -54,7 +69,7 @@ class TimeSerie(ABC):
         return self.clone(history=history)
     
     def to_df(self):
-        return self.history.copy()
+        return self.canonical_form()
 
 
 
@@ -494,6 +509,7 @@ class CumulativeStatistics(Transformation):
         assert isinstance(data, TimeSerie), "The differentiator only works over time series"
         
         df = data.to_df()
+        
         if df.shape[0] < self.periods:
             #raise AssertionError("There are not enough points to aggregated by this period: {}".format(self.periods))
             raise Exception()
