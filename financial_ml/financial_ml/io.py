@@ -3,6 +3,8 @@ import os
 import csv
 import codecs
 
+from collections import Callable
+
 import pandas as pd
 from datetime import datetime
 
@@ -23,8 +25,8 @@ class CSV2TimeSerie(TimeSerieBuilder):
     def format_date_column(self, series, pattern):
         if type(pattern) == str:
             return series.apply(lambda e: datetime.strptime(e, pattern))
-        elif type(pattern) == type(lambda e:e):
-            series.apply(lambda e: pattern(e))
+        elif isinstance(pattern, Callable):
+            return series.apply(lambda e: pattern(e))
         else:
             raise Exception()
         
